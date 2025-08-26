@@ -9,7 +9,7 @@ export default function PingKeeper() {
         .then(res => res.json())
         .then(data => console.log("Pinged backend ✅:", data))
         .catch(err => console.error("Ping failed ❌:", err));
-    }, 10 * 60 * 1000); // every 10 minutes
+    }, 1000); // every 10 minutes
 
     return () => clearInterval(interval);
   }, []);

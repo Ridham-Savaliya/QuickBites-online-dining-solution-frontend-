@@ -19,6 +19,7 @@ import Support from "./Pages/Support";
 import MyProfile from "./Pages/MyProfile";
 import Contact from "./Pages/Contact";
 import OfferZones from "./Pages/OfferZones";
+import PingKeeper from "./utills/Pingkeepr";
 
 const App = () => {
   const location = useLocation();
@@ -30,6 +31,8 @@ const App = () => {
     <div className="min-h-screen px-2 sm:px-10 md:px-14 lg:px-28 bg-orange-50 flex flex-col items-center">
       <ToastContainer />
       
+    <PingKeeper/>
+
       {/* ✅ Render Navbar only if the current route is NOT in hideNavbarRoutes */}
       {!hideNavbarRoutes.includes(location.pathname) && <Navbar />}
       
