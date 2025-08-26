@@ -1,51 +1,52 @@
 import React, { useContext, useState } from "react";
-import { useGoogleLogin } from "@react-oauth/google";
 import { AppContext } from "../Context/AppContext";
 import { assets } from "../assets/assets";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { GoogleLogin } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { handleLogin, backend, setToken } = useContext(AppContext);
+  const { backend, setToken } = useContext(AppContext);
 
   const [state, setState] = useState("Login"); // "Sign Up", "Login", "Forget Password", "Reset Password"
   const [email, setEmail] = useState("");
-  const [resetemail, setresetEmail] = useState("");
+  const [resetEmail, setResetEmail] = useState("");
   const [password, setPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Handle form submission (register/login/reset password)
+  // Submit handler for login/register/reset password
   const onSubmitHandler = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     let url = backend;
     let payload = {};
 
-    if (state === "Sign Up") {
-      url += "/api/user/register";
-      payload = { name, email, password };
-    } else if (state === "Login") {
-      url += "/api/user/login";
-      payload = { email, password };
-    } else if (state === "Reset Password") {
-      url += "/api/user/reset-password";
-      payload = { email: resetemail, newPassword, cPassword: confirmPassword };
-    }
-
     try {
+      if (state === "Sign Up") {
+        url += "/api/user/register";
+        payload = { name, email, password };
+      } else if (state === "Login") {
+        url += "/api/user/login";
+        payload = { email, password };
+      } else if (state === "Reset Password") {
+        url += "/api/user/reset-password";
+        payload = { email: resetEmail, newPassword, cPassword: confirmPassword };
+      }
+
       const { data } = await axios.post(url, payload);
+
       if (data.success) {
         if (state === "Reset Password") {
           toast.success(data.message);
           setState("Login");
-          setEmail("");
           setNewPassword("");
           setConfirmPassword("");
+          setResetEmail("");
         } else {
           setToken(data.token);
           localStorage.setItem("user-token", data.token);
@@ -63,54 +64,12 @@ const Login = () => {
     }
   };
 
-  // Handle Google OAuth for password reset
-  const handleGooglePasswordReset = useGoogleLogin({
-  onSuccess: async (response) => {
+  // Google login for Login form
+  const handleGoogleLogin = async (credential) => {
     try {
-      // Get user info from Google
-      const userInfo = await axios.get(
-        "https://www.googleapis.com/oauth2/v3/userinfo",
-        { headers: { Authorization: `Bearer ${response.access_token}` } }
-      );
-
-      const email = userInfo.data.email;
-      setresetEmail(email);
-
-      try {
-        const { data } = await axios.post(`${backend}/api/user/forget-password`, {
-          email,
-        });
-
-        if (data.success) {
-          setState("Reset Password");
-          toast.success("Email verified. Please set your new password.");
-        } else {
-          // ✅ backend returned success = false
-          toast.error(data.message || "Something went wrong. Please try again.");
-        }
-      } catch (error) {
-        // ✅ API/Network error
-        toast.error(error.response?.data?.message || "Failed to verify email");
-      }
-    } catch (err) {
-      // ✅ Google OAuth error
-      toast.error(err.response?.data?.message || "Failed to verify email with Google");
-    }
-  },
-  flow: "implicit", // keep implicit if you don’t want backend token exchange
-  scope: "openid email profile",
-});
-
-
-
-const googleLogin = useGoogleLogin({
-  onSuccess: async (tokenResponse) => {
-    try {
-      // Send the ID token (not access_token)
       const { data } = await axios.post(`${backend}/api/user/login`, {
-        googleToken: tokenResponse.credential || tokenResponse.access_token,
+        googleToken: credential,
       });
-
       if (data.success) {
         setToken(data.token);
         localStorage.setItem("user-token", data.token);
@@ -120,14 +79,29 @@ const googleLogin = useGoogleLogin({
         toast.error(data.message);
       }
     } catch (err) {
+      console.error(err);
       toast.error("Google login failed");
     }
-  },
-  onError: () => toast.error("Google login failed"),
-  flow: "implicit",
-  scope: "openid email profile",
-});
+  };
 
+const handleGooglePasswordReset = async (credential) => {
+  try {
+    const { data } = await axios.post(`${backend}/api/user/verify-google`, {
+      googleToken: credential,
+    });
+
+    if (data.success) {
+      setResetEmail(data.email);
+      setState("Reset Password");
+      toast.success("Email verified. Please set your new password.");
+    } else {
+      toast.error(data.message || "Failed to verify email with Google");
+    }
+  } catch (err) {
+    console.error(err);
+    toast.error(err.response?.data?.message || "Failed to verify email with Google");
+  }
+};
 
 
   return (
@@ -142,15 +116,15 @@ const googleLogin = useGoogleLogin({
             {state === "Sign Up"
               ? "Create Account"
               : state === "Forget Password"
-                ? "Forget Password"
-                : "Login"}
+              ? "Forget Password"
+              : "Login"}
           </p>
           <p className="mt-4">
             {state === "Sign Up"
               ? "Please sign up to place an order"
               : state === "Forget Password"
-                ? "Verify your email to reset password"
-                : "Please login to place an order"}
+              ? "Verify your email to reset password"
+              : "Please login to place an order"}
           </p>
 
           {state === "Sign Up" && (
@@ -165,6 +139,7 @@ const googleLogin = useGoogleLogin({
               />
             </div>
           )}
+
           {state !== "Forget Password" && (
             <>
               <div className="w-full">
@@ -189,14 +164,16 @@ const googleLogin = useGoogleLogin({
               </div>
             </>
           )}
+
           {state !== "Forget Password" && (
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full border py-3 text-zinc-700 font-medium rounded mt-4 text-[16px] transition-all duration-300 ${isLoading
+              className={`w-full border py-3 text-zinc-700 font-medium rounded mt-4 text-[16px] transition-all duration-300 ${
+                isLoading
                   ? "bg-orange-300 cursor-not-allowed"
                   : "bg-orange-400 hover:bg-orange-500 hover:text-black hover:scale-105"
-                }`}
+              }`}
             >
               {isLoading ? (
                 <span className="flex items-center justify-center">
@@ -230,31 +207,23 @@ const googleLogin = useGoogleLogin({
             </button>
           )}
 
-          {state === "Forget Password" ? (
-            <button
-              type="button"
-              onClick={handleGooglePasswordReset}
-              className="w-full border flex items-center justify-center gap-5 bg-white py-2 text-zinc-700 font-medium rounded mt-4 text-[16px] transition-all duration-300 hover:text-black hover:scale-105 cursor-pointer"
-            >
-              <img src={assets.google} alt="Google" className="w-8" />
-              <p>Verify with Google</p>
-            </button>
-          ) : (
+          {/* Google login */}
+          {state === "Login" || state === "Forget Password" ? (
             <>
-              <p className="text-center font-bold w-full">or</p>
-              <div
-                onClick={state === "Login" ? googleLogin : null}
-                className={`w-full border flex items-center justify-center gap-5 bg-white py-2 text-zinc-700 font-medium rounded mt-4 text-[16px] transition-all duration-300 ${state === "Sign Up"
-                    ? "cursor-not-allowed opacity-[70%]"
-                    : "hover:text-black hover:scale-105 cursor-pointer"
-                  }`}
-              >
-                <img src={assets.google} alt="Google" className="w-8" />
-                <p>Continue with Google</p>
-              </div>
+              <p className="text-center font-bold w-full mt-3">or</p>
+              <GoogleLogin
+                onSuccess={async (response) => {
+                  const credential = response.credential || response.access_token;
+                  state === "Login"
+                    ? handleGoogleLogin(credential)
+                    : handleGooglePasswordReset(credential);
+                }}
+                onError={() => toast.error("Google login failed")}
+              />
             </>
-          )}
+          ) : null}
 
+          {/* Switch between login/sign up/reset */}
           {state === "Sign Up" ? (
             <p className="mt-4">
               Already have an account?{" "}
@@ -329,38 +298,13 @@ const googleLogin = useGoogleLogin({
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full border py-3 text-zinc-700 font-medium rounded mt-4 text-[16px] transition-all duration-300 ${isLoading
+            className={`w-full border py-3 text-zinc-700 font-medium rounded mt-4 text-[16px] transition-all duration-300 ${
+              isLoading
                 ? "bg-orange-300 cursor-not-allowed"
                 : "bg-orange-400 hover:bg-orange-500 hover:text-black hover:scale-105"
-              }`}
+            }`}
           >
-            {isLoading ? (
-              <span className="flex items-center justify-center">
-                <svg
-                  className="animate-spin h-5 w-5 mr-2 text-zinc-700"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8 8 8 0 01-8-8z"
-                  />
-                </svg>
-                Resetting...
-              </span>
-            ) : (
-              "Reset Password"
-            )}
+            {isLoading ? "Resetting..." : "Reset Password"}
           </button>
           <p className="mt-4 text-center w-full">
             <span
