@@ -99,7 +99,7 @@ const RestoDesc = () => {
                       alt=""
                       className=" min-w-52 max-w-52 h-48 rounded bg-gradient-to-t from-slate-500 to-slate-900"
                     />
-                    {!cart[item._id] ? (
+                    {!cart?.[item._id] ? (
                       <div className="w-full flex justify-center -mt-6">
                         <button
                           onClick={() => addToCart(item._id)}
