@@ -103,22 +103,32 @@ const Login = () => {
 
 
 
-  // Google login handler
-  const handleGoogleLogin = async (authResult) => {
+const googleLogin = useGoogleLogin({
+  onSuccess: async (tokenResponse) => {
     try {
-      if (authResult["code"]) {
-        await handleLogin(authResult["code"]);
+      // Send the ID token (not access_token)
+      const { data } = await axios.post(`${backend}/api/user/login`, {
+        googleToken: tokenResponse.credential || tokenResponse.access_token,
+      });
+
+      if (data.success) {
+        setToken(data.token);
+        localStorage.setItem("user-token", data.token);
+        toast.success("Logged in with Google");
+        navigate("/");
+      } else {
+        toast.error(data.message);
       }
     } catch (err) {
-      toast.error("Something went wrong with Google login");
+      toast.error("Google login failed");
     }
-  };
+  },
+  onError: () => toast.error("Google login failed"),
+  flow: "implicit",
+  scope: "openid email profile",
+});
 
-  const googleLogin = useGoogleLogin({
-    onSuccess: handleGoogleLogin,
-    onError: handleGoogleLogin,
-    flow: "auth-code",
-  });
+
 
   return (
     <div className="flex items-center justify-center min-h-screen py-5">
