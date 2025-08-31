@@ -9,7 +9,7 @@ const decoded = jwtDecode(token);
 const deliveryAgentId = decoded.agentId;
 
 
-const socket = io("http://localhost:3000/track");
+const socket = io("https://quickbites-api.onrender.com/track");
 const deliveryBoyId = deliveryAgentId // Get from order data
 
 socket.emit("joinRoom", deliveryBoyId);

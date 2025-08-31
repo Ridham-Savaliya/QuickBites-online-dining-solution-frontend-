@@ -7,7 +7,7 @@ import { useState } from "react";
 
 const BestSellerDishes = () => {
 
-  const [bestSeller, setBestSeller] = useState(null)
+  const [bestSeller, setBestSeller] = useState(false)
 
   const {food_list, cart, addToCart, removeFromCart,} = useContext(AppContext)
 

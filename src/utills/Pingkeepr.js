@@ -3,7 +3,7 @@ import { useEffect } from "react";
 export default function PingKeeper() {
   useEffect(() => {
     const interval = setInterval(() => {
-      fetch("https://api-quickbites.vercel.app/healthcheck", {
+      fetch("https://quickbites-api.onrender.com/healthcheck", {
         cache: "no-store",
       })
         .then(res => res.json())

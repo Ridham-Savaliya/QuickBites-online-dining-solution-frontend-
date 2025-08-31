@@ -18,7 +18,7 @@ const AppContextProvider = (props) => {
   const [appliedPromo, setAppliedPromo] = useState(null); // Store applied promotion
   const [discount, setDiscount] = useState(0); // S
 
-  const backend = 'https://api-quickbites.vercel.app';
+  const backend = 'https://quickbites-api.onrender.com';
   const currency = "₹"
   
 
@@ -32,7 +32,7 @@ const AppContextProvider = (props) => {
       );
       setPromotions(data.promotions);
     } catch (err) { 
-      toast.error("Failed to load promotions");
+      // toast.error("Failed to load promotions");
     }
   };
 
@@ -61,7 +61,7 @@ const AppContextProvider = (props) => {
     }
 
     if(token){
-      await axios.post(`${backend}/api/cart/add-cart`,{itemId,userId:userData._id},{headers:{token}})
+      await axios.post(`${backend}/api/cart/add-cart`,{itemId},{headers:{token}})
     }
   };
 
@@ -92,42 +92,19 @@ const AppContextProvider = (props) => {
   
   };
 
-  const getTotalCartQuantity = () => {
-  let totalQty = 0;
-  for (const item in cart) {
-    totalQty += cart[item]; // cart[item] = quantity
-  }
-  return totalQty;
-};
-
-  // GST Calculation (5%)
-const calculateGst = () => {
-  const total = getTotalCartAmount() || 0;
-  const gstAmount = (total * 5) / 100;
-  return Math.round(gstAmount) || 0;
-};
-
-// Delivery Fee calculation
-const calculateDelivery = () => {
-  const totalQty = getTotalCartQuantity();
-
-  if (totalQty === 0) return 0; // empty cart = no delivery fee
-
-  if (totalQty <= 10) {
-    return 39; // flat fee for ≤ 10 items
-  } else {
-    const extraItems = totalQty - 10;
-    return 39 + (extraItems * 10); // ₹10 per item above 10
-  }
-};
-
-// Platform Fee (7%)
-const calculatePlatformFee = () => {
-  const total = getTotalCartAmount() || 0;
-  const platformFee = (total * 7) / 100;
-  return Math.round(platformFee) || 0;
-};
-
+    // calculations
+    const calculateGst = () => {
+      let gstAmount = (getTotalCartAmount() * 5) / 100;
+      return Math.round(gstAmount);
+    };
+    const calculateDelivery = () => {
+      let deliveryFee = getTotalCartAmount() && 39;
+      return Math.round(deliveryFee);
+    };
+    const calculatePlatformFee = () => {
+      let platformFee = (getTotalCartAmount() * 7) / 100;
+      return Math.round(platformFee);
+    };
 
   // fetch foods liist
   const fetchFoodList = async () => {
